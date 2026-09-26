@@ -9,7 +9,7 @@ You should have received a copy of the GNU General Public License along
 with UFONet; if not, write to the Free Software Foundation, Inc., 51
 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 """
-import os, sys, re, traceback, random, time, threading, base64, string, math
+import os, sys, re, traceback, random, time, threading, base64, string, math, hmac
 import io, socket, ssl, json, gzip
 import urllib.request, urllib.error, urllib.parse
 
@@ -189,10 +189,6 @@ class UFONet(object):
         self.extra_zombies_lock = False # used to lock threading flow when [ARMY] is required
         self.ac_control = [] # used by 'herd.py' to lock threading flow when [Zombies] are returning
         self.globalnet_msg_sep = "#$#" # globalnet stream separator
-        self.trans_5C = ''.join([chr (x ^ 0x5c) for x in range(256)])
-        self.trans_36 = ''.join([chr (x ^ 0x36) for x in range(256)])
-        self.trans_5C = self.trans_5C.encode("latin-1")
-        self.trans_36 = self.trans_36.encode("latin-1")
 
     def mothership_baptism(self):
         if os.path.exists(self.mothershipname) == True:
@@ -532,12 +528,7 @@ class UFONet(object):
         self.generate_exit_msg() # generate random exit msg
 
     def hmac_sha1(self, key, msg):
-        if len(key) > 20:
-            key = sha1(key).digest()
-        key += chr(0).encode('utf-8') * (20 - len(key))
-        o_key_pad = key.translate(self.trans_5C)
-        i_key_pad = key.translate(self.trans_36)
-        return sha1(o_key_pad + sha1(i_key_pad + msg).digest()).digest()
+        return hmac.new(key, msg, sha1).digest()
 
     def derive_keys(self, key):
         key = key.encode('utf-8')
@@ -557,7 +548,7 @@ class UFONet(object):
         MAC_SIZE = 20
         mode = AES.MODE_CFB
         try:
-            iv_ciphertext_mac = base64.urlsafe_b64decode(text)
+            iv_ciphertext_mac = base64.b64decode(text)
         except:
             try:
                 padding = len(text) % 4
@@ -567,7 +558,7 @@ class UFONet(object):
                     text += b'=='
                 elif padding == 3:
                     text += b'='
-                iv_ciphertext_mac = base64.urlsafe_b64decode(text)
+                iv_ciphertext_mac = base64.b64decode(text)
             except TypeError:
                 return None
         iv = iv_ciphertext_mac[:BLOCK_SIZE]

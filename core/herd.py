@@ -62,19 +62,20 @@ class Herd(object):
                 self.result[zombie]=str(result)
                 self.connection[zombie]=connection_failed
                 self.done.append(zombie)
-                if result[0]==200 :
+                numeric = isinstance(result, (list, tuple)) and len(result) >= 3
+                if numeric and result[0]==200:
                     self.total_hits+=1
                 else:
                     self.total_fails+=1
                 if connection_failed:
                     self.total_connection_fails+=1
-                self.active.remove(zombie)
-                self.total_time+=result[1]
-                self.total_size+=result[2]
-                if zombie in self.stats:
-                    self.stats[zombie].append(result)
-                else:
-                    pass
+                if zombie in self.active:
+                    self.active.remove(zombie)
+                if numeric:
+                    self.total_time+=result[1]
+                    self.total_size+=result[2]
+                    if zombie in self.stats:
+                        self.stats[zombie].append(result)
             except:
                 pass
 

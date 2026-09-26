@@ -18,22 +18,13 @@ BLOCK_SIZE = 16
 MAC_SIZE = 20
 
 import base64
+import hmac
 from os import urandom
 from hashlib import sha1, sha256
 from Cryptodome.Cipher import AES
 
-trans_5C = ''.join([chr (x ^ 0x5c) for x in range(256)])
-trans_36 = ''.join([chr (x ^ 0x36) for x in range(256)])
-trans_5C = trans_5C.encode("latin-1")
-trans_36 = trans_36.encode("latin-1")
-
 def hmac_sha1(key, msg):
-    if len(key) > 20:
-        key = sha1(key).digest()
-    key += chr(0).encode('utf-8') * (20 - len(key))
-    o_key_pad = key.translate(trans_5C)
-    i_key_pad = key.translate(trans_36)
-    return sha1(o_key_pad + sha1(i_key_pad + msg).digest()).digest()
+    return hmac.new(key, msg, sha1).digest()
 
 def derive_keys(key):
     h = sha256()
@@ -81,7 +72,7 @@ class Cipher(object):
 
     def decrypt(self):
         try:
-            iv_ciphertext_mac = base64.urlsafe_b64decode(self.text)
+            iv_ciphertext_mac = base64.b64decode(self.text)
         except:
             try:
                 padding = len(self.text) % 4
@@ -91,7 +82,7 @@ class Cipher(object):
                     self.text += b'=='
                 elif padding == 3:
                     self.text += b'='
-                iv_ciphertext_mac = base64.urlsafe_b64decode(self.text)
+                iv_ciphertext_mac = base64.b64decode(self.text)
             except TypeError:
                 return None
         iv = iv_ciphertext_mac[:BLOCK_SIZE]

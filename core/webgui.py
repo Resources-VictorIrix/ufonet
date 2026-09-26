@@ -14,7 +14,7 @@ import platform
 python_version = "python"+platform.python_version_tuple()[0]+"."+platform.python_version_tuple()[1] 
 #######################################################
 
-import socket, threading, re, os, time, random, base64
+import socket, threading, re, os, time, random, base64, hmac
 import webbrowser, subprocess, json, sys, requests
 _AJAX_MAP_CACHE = None
 import urllib.request, urllib.error, urllib.parse
@@ -525,12 +525,7 @@ function Streams() {
 """ + self.pages["/footer"]
 
     def hmac_sha1(self, key, msg):
-        if len(key) > 20:
-            key = sha1(key).digest()
-        key += chr(0).encode('utf-8') * (20 - len(key))
-        o_key_pad = key.translate(self.trans_5C)
-        i_key_pad = key.translate(self.trans_36)
-        return sha1(o_key_pad + sha1(i_key_pad + msg).digest()).digest()
+        return hmac.new(key, msg, sha1).digest()
 
     def derive_keys(self, key):
         key = key.encode('utf-8')
@@ -550,7 +545,7 @@ function Streams() {
         MAC_SIZE = 20
         mode = AES.MODE_CFB
         try:
-            iv_ciphertext_mac = base64.urlsafe_b64decode(text)
+            iv_ciphertext_mac = base64.b64decode(text)
         except:
             try:
                 padding = len(text) % 4
@@ -560,7 +555,7 @@ function Streams() {
                     text += b'=='
                 elif padding == 3:
                     text += b'='
-                iv_ciphertext_mac = base64.urlsafe_b64decode(text)
+                iv_ciphertext_mac = base64.b64decode(text)
             except TypeError:
                 return None
         iv = iv_ciphertext_mac[:BLOCK_SIZE]
@@ -2809,11 +2804,6 @@ Last update: <font color='"""+ self.blackholes_status_color + """'>"""+ self.bla
         f.close()
         f = open(self.release_date_file) # extract release creation datetime
         self.release_date = f.read()
-        # adding AnonTwi (anontwi.03c8.net) cyphering -> AES256+HMAC-SHA1
-        self.trans_5C = ''.join([chr (x ^ 0x5c) for x in range(256)])
-        self.trans_36 = ''.join([chr (x ^ 0x36) for x in range(256)])
-        self.trans_5C = self.trans_5C.encode("latin-1")
-        self.trans_36 = self.trans_36.encode("latin-1")
         f.close()
         f = open(self.blackholes) # double extract blackholes (nodes.txt)
         self.blackholes_text = f.read()

@@ -10,7 +10,7 @@ with UFONet; if not, write to the Free Software Foundation, Inc., 51
 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 """
 from threading import Thread
-import socket, time, os, base64, re
+import socket, time, os, base64, re, datetime
 from urllib.parse import urlparse
 class Needle(Thread):
     def __init__(self, client, addr, parent):
@@ -20,28 +20,32 @@ class Needle(Thread):
         self.parent = parent
 
     def run(self):
-        data = self.client.recv(1024)
+        data = self.client.recv(1024).decode('utf-8', errors='ignore')
         if data:
             if data.startswith("HEAD"):
                 self.parent.data_arrived(data)
-                self.client.send("""HTTP/1.1 200 OK
+                current_date = datetime.datetime.utcnow().strftime("%a, %d %b %Y %H:%M:%S GMT")
+                self.client.send(("""HTTP/1.1 200 OK
 Server: UFONet Galactic Cyber Warfare
-Date: Wed, 05 Nov 2042 16:21:23 GMT
+Date: """ + current_date + """
 Content-Type: text/html
 Content-Length: """+str(len('thanks for coming!'))+"""
 Connection: close
 
-""")
+""").encode('utf-8'))
                 self.client.close()
             else:
                 self.parent.data_arrived(data)
-                self.client.send('Welcome to UFONet mothership! ;-)\n')
-                self.client.send('='*40)
-                self.client.send("\n\nStream:\n")
-                self.client.send('-'*15 + "\n\n")
-                f = open("mothership", 'r') # read mothership stream
-                self.client.send(str(f.read()))
-                f.close()
+                self.client.send('Welcome to UFONet mothership! ;-)\n'.encode('utf-8'))
+                self.client.send(('='*40).encode('utf-8'))
+                self.client.send("\n\nStream:\n".encode('utf-8'))
+                self.client.send(('-'*15 + "\n\n").encode('utf-8'))
+                try:
+                    f = open("mothership", 'r') # read mothership stream
+                    self.client.send(str(f.read()).encode('utf-8'))
+                    f.close()
+                except FileNotFoundError:
+                    self.client.send(b"Mothership stream not found.")
                 self.client.close()
         self.parent.client_finished(self)
 

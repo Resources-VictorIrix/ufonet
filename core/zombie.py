@@ -155,10 +155,10 @@ class Zombie: # class representing a zombie
             if proxy_ip == '127.0.0.1': # working by using 'localhost' as http proxy (ex: privoxy)
                 proxy_ip = 'localhost'
             c.setopt(pycurl.PROXY, proxy_ip)
-            c.setopt(pycurl.PROXYPORT, int(proxy_port))
+            if proxy_port:
+                c.setopt(pycurl.PROXYPORT, int(proxy_port))
         else:
             c.setopt(pycurl.PROXY, '')
-            c.setopt(pycurl.PROXYPORT, pycurl.PROXYPORT)
         if options.timeout: # set timeout
             c.setopt(pycurl.TIMEOUT, options.timeout)
             c.setopt(pycurl.CONNECTTIMEOUT, options.timeout)
